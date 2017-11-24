@@ -119,6 +119,7 @@ public class ChooseAreaFragment extends Fragment {
                         activity.drawerLayout.closeDrawers();
                         activity.swipeRefresh.setRefreshing(true);
                         activity.requestWeather(weatherId);
+                        activity.getSelectedWeatherId(weatherId);
                     }
                 }
             }
@@ -134,6 +135,13 @@ public class ChooseAreaFragment extends Fragment {
             }
         });
         queryProvinces();
+    }
+
+    /**
+     * 定义接口，向WeatherActivity传递weatherId
+     */
+    public interface SelectedWeatherIdListener{
+        public void getSelectedWeatherId(String weatherId);
     }
 
     /**
