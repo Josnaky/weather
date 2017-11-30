@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.example.kings.weather.gson.AirQuality;
 import com.example.kings.weather.gson.Forecast;
 import com.example.kings.weather.gson.Lifestyle;
 import com.example.kings.weather.gson.Weather;
@@ -47,9 +48,11 @@ public class WeatherActivity extends AppCompatActivity implements
     private LinearLayout suggestionLayout;
     private TextView aqiText;
     private TextView pm25Text;
+    private TextView quality;
 
     private ImageView bingPicImg;
     private String weatherId;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +70,7 @@ public class WeatherActivity extends AppCompatActivity implements
         suggestionLayout = (LinearLayout) findViewById(R.id.suggestion_layout);
         aqiText = (TextView) findViewById(R.id.aqi_text);
         pm25Text = (TextView) findViewById(R.id.pm25_text);
+        quality = (TextView) findViewById(R.id.quality);
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         navButton = (Button) findViewById(R.id.nav_button);
@@ -76,22 +80,31 @@ public class WeatherActivity extends AppCompatActivity implements
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather",null);
 
+        SharedPreferences airPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String airString = airPrefs.getString("air", null);
+
         if(weatherString != null){
             //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
             weatherId = weather.basic.weatherId;
             showWeatherInfo(weather);
+            if(airString != null){
+                AirQuality air = Utility.handleAirQualityResponse(airString);
+                showAirQualityInfo(air);
+            }
         }else{
             //无缓存时去服务器查询天气
             weatherId = getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
             requestWeather(weatherId);
+            requestAirQuality(weatherId);
         }
 
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 requestWeather(weatherId);
+                requestAirQuality(weatherId);
             }
         });
         String bingPic = prefs.getString("bing_pic", null);
@@ -164,6 +177,51 @@ public class WeatherActivity extends AppCompatActivity implements
     }
 
     /**
+     * 根据weatherId查询天气状况
+     */
+    public void requestAirQuality(final String weatherId){
+        String airUrl = "https://free-api.heweather.com/s6/air/now?location="+ weatherId +
+                "&key=5d63dbbba8944757994870c7260299b5";
+        HttpUtil.sendOkHttpRequest(airUrl, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(WeatherActivity.this, "获取空气质量失败",
+                                Toast.LENGTH_SHORT).show();
+                        swipeRefresh.setRefreshing(false);
+                    }
+                });
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String responseText = response.body().string();
+                final AirQuality air = Utility.handleAirQualityResponse(responseText);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(air != null && "ok".equals(air.status)){
+                            SharedPreferences.Editor editor = PreferenceManager.
+                                    getDefaultSharedPreferences(WeatherActivity.this)
+                                    .edit();
+                            editor.putString("air",responseText);
+                            editor.apply();
+                            showAirQualityInfo(air);
+                        }else {
+                            Toast.makeText(WeatherActivity.this, "获取空气质量失败",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                        swipeRefresh.setRefreshing(false);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * 加载必应每日一图
      */
     private void loadBingPic(){
@@ -217,10 +275,7 @@ public class WeatherActivity extends AppCompatActivity implements
             minText.setText(forecast.tmp_min);
             forecastLayout.addView(view);
         }
-        if(weather.aqi != null){
-            aqiText.setText(weather.aqi.city.aqi);
-            pm25Text.setText(weather.aqi.city.pm25);
-        }
+
         for(Lifestyle lifestyle : weather.LifestyleList){
             View view = LayoutInflater.from(this).inflate(R.layout.suggestion_item,
                     suggestionLayout, false);
@@ -232,9 +287,17 @@ public class WeatherActivity extends AppCompatActivity implements
             suggestionLayout.addView(view);
         }
         weatherLayout.setVisibility(View.VISIBLE);
+
+    }
+
+    /**
+     * 显示空气质量信息
+     */
+    public void showAirQualityInfo(AirQuality airQuality){
+        aqiText.setText(airQuality.air.aqi);
+        pm25Text.setText(airQuality.air.pm25);
+        quality.setText(airQuality.air.quality);
         Intent intent = new Intent(this, AutoUpdateService.class);
         startService(intent);
-
-
     }
 }
