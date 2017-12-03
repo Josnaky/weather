@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.example.kings.weather.gson.AirQuality;
+import com.example.kings.weather.gson.BingPicUrl;
 import com.example.kings.weather.gson.Forecast;
 import com.example.kings.weather.gson.Lifestyle;
 import com.example.kings.weather.gson.Weather;
@@ -79,9 +80,8 @@ public class WeatherActivity extends AppCompatActivity implements
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather",null);
-
-        SharedPreferences airPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String airString = airPrefs.getString("air", null);
+        String airString = prefs.getString("air", null);
+        String bingPic = prefs.getString("bing_pic", null);
 
         if(weatherString != null){
             //有缓存时直接解析天气数据
@@ -105,14 +105,16 @@ public class WeatherActivity extends AppCompatActivity implements
             public void onRefresh() {
                 requestWeather(weatherId);
                 requestAirQuality(weatherId);
+                //getBingPicUrl();
             }
         });
-        String bingPic = prefs.getString("bing_pic", null);
-        if(bingPic != null){
-            Glide.with(this).load(bingPic).into(bingPicImg);
-        }else {
-            loadBingPic();
-        }
+
+        loadBingPic();
+//        if(bingPic != null){
+//            Glide.with(this).load(bingPic).into(bingPicImg);
+//        }else {
+//            loadBingPic();
+//        }
         navButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -225,7 +227,8 @@ public class WeatherActivity extends AppCompatActivity implements
      * 加载必应每日一图
      */
     private void loadBingPic(){
-        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        String requestBingPic = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=" +
+                "1&nc=1512054214058&pid=hp";
         HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -234,7 +237,9 @@ public class WeatherActivity extends AppCompatActivity implements
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                final String bingPic = response.body().string();
+                final String responseText = response.body().string();
+                final BingPicUrl bingPicUrl = Utility.handleBingPicUrlResponse(responseText);
+                final String bingPic = "https://cn.bing.com"+ bingPicUrl.url;
                 SharedPreferences.Editor editor = PreferenceManager.
                         getDefaultSharedPreferences(WeatherActivity.this).edit();
                 editor.putString("bing_pic", bingPic);
@@ -275,19 +280,29 @@ public class WeatherActivity extends AppCompatActivity implements
             minText.setText(forecast.tmp_min);
             forecastLayout.addView(view);
         }
-
+        String text;
         for(Lifestyle lifestyle : weather.LifestyleList){
+
+            if("comf".equals(lifestyle.type)){
+                text = "舒适指数";
+            }else if("drsg".equals(lifestyle.type)){
+                text = "穿衣指数";
+            }else if("sport".equals(lifestyle.type)){
+                text = "运动指数" ;
+            }else if ("cw".equals(lifestyle.type)){
+                text = "洗车指数";
+            }else{
+                continue;
+            }
             View view = LayoutInflater.from(this).inflate(R.layout.suggestion_item,
                     suggestionLayout, false);
             TextView stateText = (TextView) view.findViewById(R.id.state_text);
             TextView suggestText = (TextView) view.findViewById(R.id.suggestion_text);
-
-            stateText.setText(lifestyle.state);
+            stateText.setText(text);
             suggestText.setText(lifestyle.suggestion);
             suggestionLayout.addView(view);
         }
         weatherLayout.setVisibility(View.VISIBLE);
-
     }
 
     /**

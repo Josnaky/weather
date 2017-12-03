@@ -6,6 +6,7 @@ import com.example.kings.weather.db.City;
 import com.example.kings.weather.db.County;
 import com.example.kings.weather.db.Province;
 import com.example.kings.weather.gson.AirQuality;
+import com.example.kings.weather.gson.BingPicUrl;
 import com.example.kings.weather.gson.Weather;
 import com.google.gson.Gson;
 
@@ -111,6 +112,21 @@ public class Utility {
             String airContent = jsonArray.getJSONObject(0).toString();
             return new Gson().fromJson(airContent, AirQuality.class);
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 将返回的JSON数据解析成必应背景图片的URL
+     */
+    public static BingPicUrl handleBingPicUrlResponse(String response){
+        try{
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("images");
+            String content = jsonArray.getJSONObject(0).toString();
+            return new Gson().fromJson(content, BingPicUrl.class);
+        }catch (Exception e){
             e.printStackTrace();
         }
         return null;
