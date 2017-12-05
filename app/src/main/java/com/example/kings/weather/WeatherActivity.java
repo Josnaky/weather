@@ -82,7 +82,6 @@ public class WeatherActivity extends AppCompatActivity implements
         String weatherString = prefs.getString("weather",null);
         String airString = prefs.getString("air", null);
         String bingPic = prefs.getString("bing_pic", null);
-
         if(weatherString != null){
             //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -106,15 +105,16 @@ public class WeatherActivity extends AppCompatActivity implements
                 requestWeather(weatherId);
                 requestAirQuality(weatherId);
                 //getBingPicUrl();
+                loadBingPic();
             }
         });
 
-        loadBingPic();
-//        if(bingPic != null){
-//            Glide.with(this).load(bingPic).into(bingPicImg);
-//        }else {
-//            loadBingPic();
-//        }
+//        loadBingPic();
+        if(bingPic != null){
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        }else {
+            loadBingPic();
+        }
         navButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -175,7 +175,7 @@ public class WeatherActivity extends AppCompatActivity implements
                 });
             }
         });
-        loadBingPic();
+//        loadBingPic();
     }
 
     /**
@@ -281,8 +281,8 @@ public class WeatherActivity extends AppCompatActivity implements
             forecastLayout.addView(view);
         }
         String text;
+        suggestionLayout.removeAllViews();
         for(Lifestyle lifestyle : weather.LifestyleList){
-
             if("comf".equals(lifestyle.type)){
                 text = "舒适指数";
             }else if("drsg".equals(lifestyle.type)){
