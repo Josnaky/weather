@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * Created by hanx3 on 2017/11/27.
+ * @Author Kings
  */
 
 public class AirQuality {

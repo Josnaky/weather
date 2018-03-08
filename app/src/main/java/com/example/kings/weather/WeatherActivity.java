@@ -60,7 +60,7 @@ public class WeatherActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_weather);
         //初始化各控件
-        bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
+        bingPicImg = (ImageView)findViewById(R.id.bing_pic_img);
 
         weatherLayout = (ScrollView) findViewById(R.id.weather_layout);
         titleCity = (TextView) findViewById(R.id.title_city);
@@ -109,6 +109,32 @@ public class WeatherActivity extends AppCompatActivity implements
             }
         });
 
+        SwipeRefreshLayout.OnRefreshListener listener = new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(weatherId);
+                requestAirQuality(weatherId);
+                //getBingPicUrl();
+                loadBingPic();
+            }
+        };
+        swipeRefresh.setOnRefreshListener(listener);
+
+        swipeRefresh.post(new Runnable() {
+            @Override
+            public void run() {
+                swipeRefresh.setRefreshing(true);
+            }
+        });
+        listener.onRefresh();
+        swipeRefresh.post(new Runnable() {
+            @Override
+            public void run() {
+                swipeRefresh.setRefreshing(false);
+            }
+        });
+
+
 //        loadBingPic();
         if(bingPic != null){
             Glide.with(this).load(bingPic).into(bingPicImg);
@@ -128,6 +154,7 @@ public class WeatherActivity extends AppCompatActivity implements
      * 从ChooseAreaFragment获取重新选择的天气ID
      * @param weatherId
      */
+    @Override
     public void getSelectedWeatherId(String weatherId){
         this.weatherId = weatherId;
     }
